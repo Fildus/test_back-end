@@ -1,0 +1,59 @@
+version: "3.1"
+
+services:
+  web:
+    container_name: web
+    image: nginx:latest
+    ports:
+      - 8000:80
+    volumes:
+      - .:/var/www:delegated
+      - ./docker/site.conf:/etc/nginx/conf.d/default.conf
+    links:
+      - php
+  php:
+    container_name: php
+    build:
+      context: ./docker/php
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    volumes:
+      - .:/var/www:delegated
+  node:
+    container_name: node
+    build:
+      context: ./docker/node
+    command: yarn run dev-server
+    working_dir: /usr/src/app
+    user: "${USER_ID}:${GROUP_ID}"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/usr/src/app:cached
+    ports:
+      - 8080:8080
+  db:
+    container_name: db
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: root
+      MYSQL_DATABASE: datadase
+    ports:
+      - 3307:3306
+    volumes:
+      - db-data:/var/lib/mysql
+  adminer:
+    container_name: adminer
+    image: adminer
+    environment:
+      ADMINER_DESIGN: arcs-material
+      ADMINER_DEFAULT_SERVER: db
+    links:
+      - db
+    ports:
+      - 8888:8080
+volumes:
+  db-data:
+    driver: local
